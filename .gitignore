@@ -108,7 +108,6 @@ coverage
 
 # Uploaded files on the server
 *.zip
-*.pdf
 *.mp4
 *.avi
 *.mov
