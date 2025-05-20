@@ -1,0 +1,11 @@
+@HarmonicArchiveBackend_HostAddress = http://localhost:5220
+
+GET {{HarmonicArchiveBackend_HostAddress}}/todos/
+Accept: application/json
+
+###
+
+GET {{HarmonicArchiveBackend_HostAddress}}/todos/1
+Accept: application/json
+
+###

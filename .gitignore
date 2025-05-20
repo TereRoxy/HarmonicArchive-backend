@@ -1,0 +1,122 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build Folders
+bin/
+obj/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+logs/
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Rider
+.idea/
+
+# ASP.NET Scaffolding
+.scaffolding/
+
+# Packages
+*.nupkg
+*.snupkg
+
+# Visual Studio working folder
+.vs/
+
+# DotNet CLI
+artifacts/
+*.lock.json
+
+# Coverage
+coverage/
+*.coverage
+*.coveragexml
+*.testlog
+
+# Crash Reports
+*.crash
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+~$*
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.sln.docstates
+
+# Database files
+*.mdf
+*.ldf
+
+# Publish output
+publish/
+wwwroot/
+
+# Resharper
+_ReSharper*/
+*.DotSettings.user
+
+# JetBrains Rider
+.idea/
+.idea_modules/
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Coverage directory used by tools like istanbul
+coverage
+*.vue.html
+
+# Uploaded files on the server
+*.zip
+*.pdf
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.svg
+*.ico
