@@ -1,6 +1,7 @@
 using HarmonicArchiveBackend.Data;
 using HarmonicArchiveBackend.Repository;
 using HarmonicArchiveBackend.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -36,9 +37,21 @@ builder.Services.AddCors(options =>
 builder.Services.AddAuthentication("MyCookieAuth")
     .AddCookie("MyCookieAuth", options =>
     {
-        options.LoginPath = "/api/users/login";
-        options.LogoutPath = "/api/users/logout";
+        options.LoginPath = "/api/Users/login";
+        options.LogoutPath = "/api/Users/logout";
         options.Cookie.Name = "MyAuthCookie";
+        options.Cookie.SameSite = SameSiteMode.None; // Allow cross-site requests
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Require HTTPS
+        options.Cookie.HttpOnly = true; // Prevent JavaScript access
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnRedirectToLogin = context =>
+            {
+                context.Response.StatusCode = 401;
+                context.Response.ContentType = "application/json";
+                return context.Response.WriteAsync("{\"error\": \"Unauthorized\"}");
+            }
+        };
     });
 
 
