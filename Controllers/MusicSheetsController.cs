@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.WebSockets;
 using System.Security.Claims;
-using Mono.Unix;
 using WebSocketManager = HarmonicArchiveBackend.Services.WebSocketManager;
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
@@ -173,41 +172,21 @@ public class MusicSheetsController : ControllerBase
         var uploadsFolder = Path.Combine("UploadedFiles", "Music");
         var fullUploadsPath = Path.GetFullPath(uploadsFolder);
 
-            if (!Directory.Exists(fullUploadsPath))
-            {
-                Directory.CreateDirectory(fullUploadsPath);
+        if (!Directory.Exists(fullUploadsPath))
+        {
+            Directory.CreateDirectory(fullUploadsPath);
+        }
 
-                // Set directory permissions to 777 (rwxrwxrwx) for testing
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    var unixDirInfo = new UnixFileInfo(fullUploadsPath);
-                    unixDirInfo.FileAccessPermissions = FileAccessPermissions.UserReadWriteExecute |
-                                                       FileAccessPermissions.GroupReadWriteExecute |
-                                                       FileAccessPermissions.OtherReadWriteExecute;
-                }
-            }
+        // Sanitize filename to prevent path traversal
+        var fileName = Guid.NewGuid().ToString() + Path.GetExtension(musicFile.FileName); // Use GUID for uniqueness
+        var filePath = Path.Combine(uploadsFolder, fileName);
 
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await musicFile.CopyToAsync(stream);
+        }
 
-            // Sanitize filename to prevent path traversal
-            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(musicFile.FileName); // Use GUID for uniqueness
-            var filePath = Path.Combine(uploadsFolder, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await musicFile.CopyToAsync(stream);
-            }
-
-            // Set file permissions to 777 for testing
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                var unixFileInfo = new UnixFileInfo(filePath);
-                unixFileInfo.FileAccessPermissions = FileAccessPermissions.UserReadWriteExecute |
-                                                    FileAccessPermissions.GroupReadWriteExecute |
-                                                    FileAccessPermissions.OtherReadWriteExecute;
-            }
-            return Ok(new { filePath = $"/UploadedFiles/Music/{fileName}" });
+        return Ok(new { filePath = $"/UploadedFiles/Music/{fileName}" });
     }
 
     [HttpGet("current/tags")]

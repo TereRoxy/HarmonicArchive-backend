@@ -2,7 +2,6 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
 
@@ -22,12 +21,9 @@ FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
 RUN dotnet publish "./HarmonicArchiveBackend.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
-# Create and set permissions for the uploads directory
-RUN mkdir -p /app/UploadedFiles/Music && \
-    chmod -R 777 /app/UploadedFiles/Music
-
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN mkdir -p /app/UploadedFiles/Music
 ENTRYPOINT ["dotnet", "HarmonicArchiveBackend.dll"]
