@@ -4,7 +4,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.WebSockets;
 using System.Security.Claims;
+using Mono.Unix;
 using WebSocketManager = HarmonicArchiveBackend.Services.WebSocketManager;
+using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -168,20 +171,54 @@ public class MusicSheetsController : ControllerBase
             return BadRequest("Only PDF files are allowed.");
 
         var uploadsFolder = Path.Combine("UploadedFiles", "Music");
-        if (!Directory.Exists(uploadsFolder))
-            Directory.CreateDirectory(uploadsFolder);
+        var fullUploadsPath = Path.GetFullPath(uploadsFolder);
 
-        // Sanitize filename to prevent path traversal
-        var fileName = Guid.NewGuid().ToString() + Path.GetExtension(musicFile.FileName); // Use GUID for uniqueness
-        var filePath = Path.Combine(uploadsFolder, fileName);
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        try
         {
-            await musicFile.CopyToAsync(stream);
-        }
+            if (!Directory.Exists(fullUploadsPath))
+            {
+                Directory.CreateDirectory(fullUploadsPath);
 
-        // Return relative path
-        return Ok(new { filePath = $"/UploadedFiles/Music/{fileName}" });
+                // Set directory permissions to 777 (rwxrwxrwx) for testing
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    var unixDirInfo = new UnixFileInfo(fullUploadsPath);
+                    unixDirInfo.FileAccessPermissions = FileAccessPermissions.UserReadWriteExecute |
+                                                       FileAccessPermissions.GroupReadWriteExecute |
+                                                       FileAccessPermissions.OtherReadWriteExecute;
+                }
+            }
+
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            // Sanitize filename to prevent path traversal
+            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(musicFile.FileName); // Use GUID for uniqueness
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await musicFile.CopyToAsync(stream);
+            }
+
+            // Set file permissions to 777 for testing
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                var unixFileInfo = new UnixFileInfo(filePath);
+                unixFileInfo.FileAccessPermissions = FileAccessPermissions.UserReadWriteExecute |
+                                                    FileAccessPermissions.GroupReadWriteExecute |
+                                                    FileAccessPermissions.OtherReadWriteExecute;
+            }
+            return Ok(new { filePath = $"/UploadedFiles/Music/{fileName}" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(500, new { error = "Failed to upload file: Permission denied" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = "Failed to upload file: {Message}", message = ex.Message });
+        }
     }
 
     [HttpGet("current/tags")]
