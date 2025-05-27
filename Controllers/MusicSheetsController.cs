@@ -173,8 +173,6 @@ public class MusicSheetsController : ControllerBase
         var uploadsFolder = Path.Combine("UploadedFiles", "Music");
         var fullUploadsPath = Path.GetFullPath(uploadsFolder);
 
-        try
-        {
             if (!Directory.Exists(fullUploadsPath))
             {
                 Directory.CreateDirectory(fullUploadsPath);
@@ -210,15 +208,6 @@ public class MusicSheetsController : ControllerBase
                                                     FileAccessPermissions.OtherReadWriteExecute;
             }
             return Ok(new { filePath = $"/UploadedFiles/Music/{fileName}" });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return StatusCode(500, new { error = "Failed to upload file: Permission denied" });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { error = "Failed to upload file: {Message}", message = ex.Message });
-        }
     }
 
     [HttpGet("current/tags")]
