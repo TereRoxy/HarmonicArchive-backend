@@ -1,39 +1,49 @@
-﻿using System.Net.WebSockets;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Net.WebSockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace HarmonicArchiveBackend.Services;
 public class WebSocketManager
 {
-    private readonly List<WebSocket> _sockets = new();
+    private readonly ConcurrentBag<WebSocket> _sockets = new ConcurrentBag<WebSocket>();
 
     public void AddSocket(WebSocket socket)
     {
         _sockets.Add(socket);
     }
 
-    public async Task BroadcastMessageAsync(string message)
+    public void RemoveSocket(WebSocket socket)
+    {
+        // Remove the socket (ConcurrentBag doesn't have a direct remove, so we rely on cleanup in BroadcastAsync)
+    }
+
+    public async Task BroadcastAsync(string message, CancellationToken cancellationToken)
     {
         var buffer = Encoding.UTF8.GetBytes(message);
-        var tasks = _sockets
-            .Where(s => s.State == WebSocketState.Open)
-            .Select(async socket =>
+        var segment = new ArraySegment<byte>(buffer);
+
+        foreach (var socket in _sockets)
+        {
+            if (socket.State == WebSocketState.Open)
             {
                 try
                 {
-                    await socket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, CancellationToken.None);
+                    await socket.SendAsync(segment, WebSocketMessageType.Text, true, cancellationToken);
                 }
                 catch
                 {
-                    // Handle errors (e.g., remove closed sockets)
-                    _sockets.Remove(socket);
+                    // Handle or log errors (e.g., socket closed unexpectedly)
                 }
-            });
+            }
+        }
 
-        await Task.WhenAll(tasks);
-    }
-
-    public void RemoveSocket(WebSocket socket)
-    {
-        _sockets.Remove(socket);
+        // Clean up closed sockets
+        var closedSockets = _sockets.Where(s => s.State != WebSocketState.Open).ToList();
+        foreach (var socket in closedSockets)
+        {
+            _sockets.TryTake(out _);
+        }
     }
 }

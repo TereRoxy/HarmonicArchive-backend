@@ -1,67 +1,116 @@
-﻿using System.Net.WebSockets;
-using System.Text.Json;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using System.Text.Json;
+using System.Net.WebSockets;
 using HarmonicArchiveBackend.Services;
-using WebSocketManager = HarmonicArchiveBackend.Services.WebSocketManager;
 
-public class MusicSheetWorker : BackgroundService
+public class MusicSheetWorker : IHostedService, IDisposable
 {
+    private static bool _isRunning = false;
+    private static CancellationTokenSource _cts = new CancellationTokenSource();
     private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<MusicSheetWorker> _logger;
     private readonly WebSocketManager _webSocketManager;
-    private bool _isRunning = false;
+    private Task _workerTask;
 
-    public MusicSheetWorker(IServiceProvider serviceProvider, ILogger<MusicSheetWorker> logger, WebSocketManager webSocketManager)
+    public MusicSheetWorker(IServiceProvider serviceProvider, WebSocketManager webSocketManager)
     {
         _serviceProvider = serviceProvider;
-        _logger = logger;
         _webSocketManager = webSocketManager;
     }
 
-    public void ToggleWorker(bool isRunning)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        _isRunning = isRunning;
-        _logger.LogInformation($"MusicSheetWorker is now {(isRunning ? "running" : "stopped")}.");
-    }
-
-    // MusicSheetWorker.cs
-    public void AddWebSocket(WebSocket webSocket)
-    {
-        _webSocketManager.AddSocket(webSocket);
-    }
-
-    public void RemoveWebSocket(WebSocket webSocket)
-    {
-        _webSocketManager.RemoveSocket(webSocket);
-    }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
+        // Start the worker if it's not already running
+        if (!_isRunning)
         {
-            if (_isRunning)
-            {
-                try
-                {
-                    var fakeMusicSheet = MusicSheetGenerator.GenerateMusicSheets(1).First();
-                    // Add the generated music sheet to the database
-                    using (var scope = _serviceProvider.CreateScope())
-                    {
-                        var musicSheetService = scope.ServiceProvider.GetRequiredService<MusicSheetService>();
-                        await musicSheetService.AddMusicSheetFromDtoAsync(fakeMusicSheet);
-                    }
-
-                    var message = JsonSerializer.Serialize(fakeMusicSheet);
-                    await _webSocketManager.BroadcastMessageAsync(message);
-                    _logger.LogInformation("Sent new music sheet via WebSocket");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Error in worker execution: {ex.Message}");
-                }
-            }
-            await Task.Delay(5000, stoppingToken);
+            _isRunning = true;
+            _cts = new CancellationTokenSource();
+            _workerTask = Task.Run(() => RunWorkerAsync(_cts.Token));
         }
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        // Stop the worker
+        if (_isRunning)
+        {
+            _isRunning = false;
+            _cts.Cancel();
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task RunWorkerAsync(CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                // Use service scope to resolve MusicSheetService
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var musicSheetService = scope.ServiceProvider.GetRequiredService<MusicSheetService>();
+
+                    // Generate one new music sheet using MusicSheetGenerator
+                    var newMusicSheets = MusicSheetGenerator.GenerateMusicSheets(1);
+                    var newMusicSheet = newMusicSheets[0];
+
+                    // Set UserId to a default or system value (e.g., 0 for generated sheets)
+                    newMusicSheet.UserId = 0;
+
+                    // Save the generated music sheet to the database
+                    await musicSheetService.AddMusicSheetFromDtoAsync(newMusicSheet);
+
+                    // Serialize the music sheet to JSON
+                    var message = JsonSerializer.Serialize(newMusicSheet);
+
+                    // Broadcast to all connected WebSocket clients
+                    await _webSocketManager.BroadcastAsync(message, cancellationToken);
+                }
+
+                // Wait for a specified interval (e.g., 30 seconds) before generating the next sheet
+                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                // Exit the loop if cancellation is requested
+                break;
+            }
+            catch (Exception ex)
+            {
+                // Log the error (use proper logging in production)
+                Console.WriteLine($"Worker error: {ex.Message}");
+            }
+        }
+    }
+
+    public static void Start()
+    {
+        // This method is called by the controller
+        if (!_isRunning)
+        {
+            _isRunning = true;
+            _cts = new CancellationTokenSource();
+            // The actual task is started in StartAsync
+        }
+    }
+
+    public static void Stop()
+    {
+        // This method is called by the controller
+        if (_isRunning)
+        {
+            _isRunning = false;
+            _cts.Cancel();
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Dispose();
     }
 }

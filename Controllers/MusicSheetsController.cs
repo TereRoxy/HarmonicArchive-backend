@@ -39,6 +39,12 @@ public class MusicSheetsController : ControllerBase
 
         var userId = int.Parse(userIdClaim.Value);
 
+        if (_page < 1)
+            return BadRequest(new { Message = "Page number must be greater than 0." });
+
+        if (_limit < 1)
+            return BadRequest(new { Message = "Limit must be greater than 0." });
+
 
         var genreList = genres?.Split(',').Select(g => g.Trim()).ToList();
         var instrumentList = instruments?.Split(',').Select(i => i.Trim()).ToList();
@@ -119,7 +125,14 @@ public class MusicSheetsController : ControllerBase
     [HttpPost("toggle-worker")]
     public IActionResult ToggleWorker([FromQuery] bool isRunning)
     {
-        // Assuming the worker is already implemented
+        if (isRunning)
+        {
+            MusicSheetWorker.Start();
+        }
+        else
+        {
+            MusicSheetWorker.Stop();
+        }
         return Ok(new { Message = $"Worker is now {(isRunning ? "running" : "stopped")}." });
     }
 
