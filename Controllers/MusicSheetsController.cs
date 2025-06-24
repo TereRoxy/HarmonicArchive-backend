@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.WebSockets;
 using System.Security.Claims;
-using WebSocketManager = HarmonicArchiveBackend.Services.WebSocketManager;
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 

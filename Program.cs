@@ -12,7 +12,8 @@ using System;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
-using WebSocketManager = HarmonicArchiveBackend.Services.WebSocketManager;
+using HarmonicArchiveBackend.Services;
+
 
 // Force invariant culture for the entire app
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
@@ -158,7 +159,7 @@ app.Map("/ws", async context =>
     if (context.WebSockets.IsWebSocketRequest)
     {
         var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-        var webSocketManager = context.RequestServices.GetRequiredService<HarmonicArchiveBackend.Services.WebSocketManager>();
+        var webSocketManager = context.RequestServices.GetRequiredService<WebSocketManager>();
         webSocketManager.AddSocket(webSocket);
 
         while (webSocket.State == WebSocketState.Open)
