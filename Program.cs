@@ -28,7 +28,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigins", policy =>
     {
-        policy.WithOrigins("https://harmonic-archive.vercel.app", "https://harmonic-archive-git-main-tereroxys-projects.vercel.app", "https://harmonic-archive-n7acnjlz2-tereroxys-projects.vercel.app", "http://localhost:5173")
+        policy.WithOrigins("https://harmonic-archive.vercel.app", "https://harmonic-archive-git-main-tereroxys-projects.vercel.app", "https://harmonic-archive-n7acnjlz2-tereroxys-projects.vercel.app", "http://localhost:5173", "https://harmonic-archive.up.railway.app", "http://localhost:5173")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
