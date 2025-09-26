@@ -73,11 +73,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 // Register WebSocketManager as a singleton
-builder.Services.AddSingleton<WebSocketManager>();
+//builder.Services.AddSingleton<WebSocketManager>();
 
 // Register MusicSheetWorker as a singleton and hosted service
-builder.Services.AddSingleton<MusicSheetWorker>();
-builder.Services.AddHostedService(provider => provider.GetRequiredService<MusicSheetWorker>());
+//builder.Services.AddSingleton<MusicSheetWorker>();
+//builder.Services.AddHostedService(provider => provider.GetRequiredService<MusicSheetWorker>());
 
 // Register repository and service with scoped lifetime
 builder.Services.AddScoped<MusicSheetRepository>();
@@ -153,21 +153,21 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.UseWebSockets();
-app.Map("/ws", async context =>
-{
-    if (context.WebSockets.IsWebSocketRequest)
-    {
-        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-        var webSocketManager = context.RequestServices.GetRequiredService<WebSocketManager>();
-        webSocketManager.AddSocket(webSocket);
+//app.UseWebSockets();
+//app.Map("/ws", async context =>
+//{
+//    if (context.WebSockets.IsWebSocketRequest)
+//    {
+//        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+//        var webSocketManager = context.RequestServices.GetRequiredService<WebSocketManager>();
+//        webSocketManager.AddSocket(webSocket);
 
-        while (webSocket.State == WebSocketState.Open)
-        {
-            await Task.Delay(1000); // Keep the connection alive
-        }
-    }
-});
+//        while (webSocket.State == WebSocketState.Open)
+//        {
+//            await Task.Delay(1000); // Keep the connection alive
+//        }
+//    }
+//});
 
 //Seed the database with 20 music sheets at startup
 //using (var scope = app.Services.CreateScope())
